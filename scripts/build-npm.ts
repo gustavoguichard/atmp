@@ -14,7 +14,7 @@ await build({
     name: 'atmp',
     version: pkg.version,
     description:
-      'Add a safe layer to your functions and catch errors without try/catch blocks. Inspired by domain-functions',
+      'Add a safe layer to your functions and catch errors without try/catch blocks. Inspired by domain-functions.',
     license: 'MIT',
     author: 'Gustavo Guichard',
     bugs: {
