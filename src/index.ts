@@ -4,8 +4,12 @@ type Last<T extends readonly any[]> = T extends [...infer _I, infer L]
 type First<T extends readonly any[]> = T extends [infer F, ...infer _I]
   ? F
   : never
-type ErrorType = { message: string; exception?: unknown }
-type Error = [null, [ErrorType, ...ErrorType[]]]
+type ErrorWithMessage = {
+  message: string
+  exception?: unknown
+  cause?: unknown
+}
+type Error = [null, [ErrorWithMessage, ...ErrorWithMessage[]]]
 type Success<T> = [Awaited<T>, null]
 type Result<T> = Success<T> | Error
 
@@ -39,17 +43,17 @@ function collect<T extends Record<string, Attempt>>(fns: T) {
         if (result[1]) {
           return [successes, [...errors, ...result[1]]] as [
             Record<string, Result<any>>,
-            Array<ErrorType>,
+            Array<ErrorWithMessage>,
           ]
         } else {
           successes[key] = result[0]
           return [successes, errors] as [
             Record<string, Result<any>>,
-            Array<ErrorType>,
+            Array<ErrorWithMessage>,
           ]
         }
       },
-      [{}, []] as [Record<string, Result<any>>, Array<ErrorType>],
+      [{}, []] as [Record<string, Result<any>>, Array<ErrorWithMessage>],
     )
     return errors.length ? [null, errors] : [successes, null]
   }) as Attempt<
@@ -83,25 +87,25 @@ function map<T extends Attempt, R>(
   }) as Attempt<(...args: Parameters<T>) => R>
 }
 
-function mapError<T extends Attempt, R>(fn: T, mapper: (err: ErrorType) => R) {
+function mapError<T extends Attempt, R>(
+  fn: T,
+  mapper: (err: ErrorWithMessage) => ErrorWithMessage,
+) {
   return (async (...args) => {
     const [res, err] = await fn(...args)
     return err ? [null, err.map(mapper)] : [res, null]
   }) as T
 }
 
-type ErrorWithMessage = {
-  message: string
-  exception?: unknown
+function objectHasKey<T extends string>(
+  obj: unknown,
+  key: T,
+): obj is { [k in T]: unknown } {
+  return typeof obj === 'object' && obj !== null && key in obj
 }
 
 function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof error.message === 'string'
-  )
+  return objectHasKey(error, 'message') && typeof error.message === 'string'
 }
 
 function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
@@ -110,8 +114,9 @@ function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
       ? maybeError.message
       : String(maybeError),
     exception: maybeError,
+    cause: objectHasKey(maybeError, 'cause') ? maybeError.cause : undefined,
   }
 }
 
-export type { Attempt, Result, ErrorType }
+export type { Attempt, Result, ErrorWithMessage }
 export { atmp, collect, pipe, map, mapError }

@@ -1,7 +1,7 @@
 import { describe, it } from 'https://deno.land/std@0.156.0/testing/bdd.ts'
 import { assertEquals } from 'https://deno.land/std@0.160.0/testing/asserts.ts'
 import { atmp, collect, map, mapError, pipe } from './index.ts'
-import type { Attempt, Result, ErrorType } from './index.ts'
+import type { Attempt, Result, ErrorWithMessage } from './index.ts'
 
 const voidFn = () => {}
 const toString = (a: unknown) => `${a}`
@@ -13,7 +13,7 @@ const faultyAdd = (a: number, b: number) => {
   return a + b
 }
 const alwaysThrow = () => {
-  throw new Error('always throw')
+  throw new Error('always throw', { cause: 'it was made for this' })
 }
 
 describe('atmp', () => {
@@ -79,6 +79,7 @@ describe('pipe', () => {
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'always throw')
+    assertEquals(err![0].cause, 'it was made for this')
   })
 })
 
@@ -150,7 +151,7 @@ describe('map', () => {
   })
 })
 
-const cleanError = (err: ErrorType) => ({ message: err.message + '!!!' })
+const cleanError = (err: ErrorWithMessage) => ({ message: err.message + '!!!' })
 describe('mapError', () => {
   it('maps over the error results of an attempt function', async () => {
     const fn: Attempt<(a: number, b: number) => number> = mapError(
