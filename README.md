@@ -123,8 +123,8 @@ const [result, error] = await addAndCheck(1, 2)
 Example:
 
 ```typescript
-type Result&lt;T&gt; = Success&lt;T&gt; | Error;
-type Success&lt;T&gt; = [T, null];
+type Result<T> = Success<T> | Error;
+type Success<T> = [T, null];
 type Error = [null, ErrorWithMessage[]];
 type ErrorWithMessage = { message: string; exception?: unknown, cause?: unknown };
 ```
