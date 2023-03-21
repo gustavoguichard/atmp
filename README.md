@@ -32,7 +32,7 @@ It is cool - and also inspired this library - but it can still lead to a lot of 
 The idea of `atmp` is to follow the suggested approach above but wrapping the functions in a Monad so you can compose them in a safe way.
 
 ```ts
-import { atmp } from 'atmp'
+import { atmp } from 'atmp-fns'
 
 const add5 = pipe(atmp(add2), atmp(asyncAdd3))
 const result: Result<number> = await add5(5)
@@ -58,7 +58,7 @@ const result: Result<number> = await atmp(add5)(5)
 ## Installation
 
 ```bash
-npm install atmp
+npm install atmp-fns
 ```
 
 ## Usage
@@ -66,7 +66,7 @@ npm install atmp
 Here is a basic example of how to use the `atmp` library:
 
 ```ts
-import { atmp } from 'atmp'
+import { atmp } from 'atmp-fns'
 
 const add = (a: number, b: number) => a + b
 
@@ -76,7 +76,7 @@ const [data, error] = await atmp(add)(1, 3)
 ```
 
 ```ts
-import { atmp, pipe, collect, map, mapError } from 'atmp'
+import { atmp, pipe, collect, map, mapError } from 'atmp-fns'
 
 const faultyAdd = (a: number, b: number) => {
   if (a === 1) throw new Error('a is 1')

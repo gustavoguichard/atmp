@@ -11,7 +11,7 @@ await build({
   outDir: './npm',
   shims: { deno: true },
   package: {
-    name: 'atmp',
+    name: 'atmp-fns',
     version: pkg.version,
     description:
       'Add a safe layer to your functions and catch errors without try/catch blocks. Inspired by domain-functions.',
