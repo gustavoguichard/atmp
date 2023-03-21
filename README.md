@@ -50,7 +50,7 @@ const result: Result<number> = await atmp(add5)(5)
 ## Features
 
 - Simple error handling with `atmp` function
-- Function composition using `pipe` and `collect`
+- Function composition using `pipe`, `sequence`, and `collect`
 - Map over successful results with `map`
 - Map over error results with `mapError`
 
@@ -76,7 +76,7 @@ const [data, error] = await atmp(add)(1, 3)
 ```
 
 ```ts
-import { atmp, pipe, collect, map, mapError } from 'atmp-fns'
+import { atmp, pipe, collect, map } from 'atmp-fns'
 
 const faultyAdd = (a: number, b: number) => {
   if (a === 1) throw new Error('a is 1')
@@ -156,8 +156,22 @@ Example:
 
 ```typescript
 const addAndToString = pipe(atmp(add), atmp(String))
-const [result] = await addAndToString(1, 2)
+const [result, error] = await addAndToString(1, 2)
 // result is going to be '3'
+// error is going to be null
+```
+
+### sequence(...fns: Attempt[]): Attempt&lt;T[]&gt;
+
+Exactly like `pipe` but it saves the result of previous steps in a tuple.
+
+Example:
+
+```typescript
+const addAndToString = sequence(atmp(add), atmp(String))
+const [[result1, result2], error] = await addAndToString(1, 2)
+// result1 is going to be 3 and result2 is going to be '3'
+// error is going to be null
 ```
 
 ### collect(fns: Record<string, Attempt>): Attempt&lt;T&gt;
