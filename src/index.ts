@@ -1,24 +1,12 @@
-type Last<T extends readonly any[]> = T extends [...infer _I, infer L]
-  ? L
-  : never
-type First<T extends readonly any[]> = T extends [infer F, ...infer _I]
-  ? F
-  : never
-type ErrorWithMessage = {
-  message: string
-  exception?: unknown
-  cause?: unknown
-}
-type Error = [null, [ErrorWithMessage, ...ErrorWithMessage[]]]
-type Success<T> = [Awaited<T>, null]
-type Result<T> = Success<T> | Error
-
-type Fn = (...args: any[]) => any
-type Attempt<T extends Fn = Fn> = (
-  ...args: Parameters<T>
-) => Promise<Result<ReturnType<T>>>
-
-type UnpackResult<T> = Awaited<T> extends Result<infer R> ? R : never
+import {
+  Attempt,
+  ErrorWithMessage,
+  First,
+  Fn,
+  Last,
+  Result,
+  UnpackResult,
+} from './types.ts'
 
 function atmp<T extends Fn>(fn: T): Attempt<T> {
   return async (...args) => {
