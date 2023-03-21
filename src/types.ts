@@ -20,6 +20,13 @@ type Attempt<T extends Fn = Fn> = (
 
 type UnpackResult<T> = Awaited<T> extends Result<infer R> ? R : never
 
+type UnpackAll<List, output extends unknown[] = []> = List extends [
+  Attempt<infer first>,
+  ...infer rest,
+]
+  ? UnpackAll<rest, [...output, Awaited<ReturnType<first>>]>
+  : output
+
 type MergeObjs<Objs extends unknown[], output = {}> = Prettify<
   Objs extends [infer first, ...infer rest]
     ? MergeObjs<rest, Omit<output, keyof first> & first>
@@ -46,5 +53,6 @@ export type {
   Prettify,
   Result,
   TupleToUnion,
+  UnpackAll,
   UnpackResult,
 }

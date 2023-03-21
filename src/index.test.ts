@@ -1,6 +1,6 @@
 import { describe, it } from 'https://deno.land/std@0.156.0/testing/bdd.ts'
 import { assertEquals } from 'https://deno.land/std@0.160.0/testing/asserts.ts'
-import { atmp, collect, map, mapError, pipe } from './index.ts'
+import { atmp, collect, map, mapError, pipe, sequence } from './index.ts'
 import type { Attempt, Result, ErrorWithMessage } from './index.ts'
 
 const voidFn = () => {}
@@ -80,6 +80,29 @@ describe('pipe', () => {
     assertEquals(res, null)
     assertEquals(err![0].message, 'always throw')
     assertEquals(err![0].cause, 'it was made for this')
+  })
+})
+
+describe('sequence', () => {
+  it('sends the results of the first function to the second and saves every step of the result', async () => {
+    const fn: Attempt<(a: number, b: number) => [number, string]> = sequence(
+      atmp(add),
+      atmp(toString),
+    )
+    const res: Result<[number, string]> = await fn(1, 2)
+
+    assertEquals(res, [[3, '3'], null])
+  })
+
+  it('catches the errors from function A', async () => {
+    const fn: Attempt<(a: number, b: number) => [number, string]> = sequence(
+      atmp(faultyAdd),
+      atmp(toString),
+    )
+    const [res, err]: Result<[number, string]> = await fn(1, 2)
+
+    assertEquals(res, null)
+    assertEquals(err![0].message, 'a is 1')
   })
 })
 

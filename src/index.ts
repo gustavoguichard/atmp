@@ -5,6 +5,7 @@ import {
   Fn,
   Last,
   Result,
+  UnpackAll,
   UnpackResult,
 } from './types.ts'
 
@@ -52,16 +53,32 @@ function collect<T extends Record<string, Attempt>>(fns: T) {
 }
 
 function pipe<T extends [Attempt, ...Attempt[]]>(...fns: T) {
-  const [head, ...tail] = fns
-  return ((...args) => {
-    return tail.reduce(async (memo, fn) => {
-      const [res, err] = await memo
-      return err ? memo : fn(res)
-    }, head(...args))
+  return (async (...args) => {
+    const [res, err] = await sequence(...fns)(...args)
+    return err ? [null, err] : [res.at(-1), null]
   }) as Attempt<
     (
       ...args: Parameters<Extract<First<T>, Attempt>>
     ) => UnpackResult<ReturnType<Extract<Last<T>, Attempt>>>
+  >
+}
+
+function sequence<T extends [Attempt, ...Attempt[]]>(...fns: T) {
+  return (async (...args) => {
+    const [head, ...tail] = fns
+
+    const [res, err] = await head(...args)
+    if (err) return [null, err]
+
+    const result = [res]
+    for await (const fn of tail) {
+      const [res, err] = await fn(result.at(-1))
+      if (err) return [null, err]
+      result.push(res)
+    }
+    return [result, null]
+  }) as Attempt<
+    (...args: Parameters<Extract<First<T>, Attempt>>) => UnpackAll<T>
   >
 }
 
@@ -107,4 +124,4 @@ function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
 }
 
 export type { Attempt, Result, ErrorWithMessage }
-export { atmp, collect, pipe, map, mapError }
+export { atmp, collect, pipe, map, mapError, sequence }
