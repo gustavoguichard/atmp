@@ -92,16 +92,23 @@ describe('pipe', () => {
     assertEquals(err![0].message, 'a is 1')
   })
 
+  it('catches the type errors early', async () => {
+    const fn = pipe(atmp(add), atmp(toString), atmp(add))
+    const res = await fn(1, 2)
+
+    type _FN = Expect<Equal<typeof fn, Attempt<(a: number, b: number) => void>>>
+    type _R = Expect<Equal<typeof res, Result<void>>>
+
+    // This is definitely not what the dev expected
+    assertEquals(res, ['3undefined', null] as Result<any>)
+  })
+
   it('catches the errors from function B', async () => {
     const fn = pipe(atmp(add), atmp(alwaysThrow), atmp(toString))
-    // TODO this should not type check
+    // @ts-expect-error: this should never type check
     const [res, err] = await fn(1, 2)
 
-    // TODO this should be a type error
-    type _FN = Expect<
-      Equal<typeof fn, Attempt<(a: number, b: number) => string>>
-    >
-    type _R = Expect<Equal<typeof res, Result<string>[0]>>
+    type _FN = Expect<Equal<typeof fn, never>>
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'always throw')

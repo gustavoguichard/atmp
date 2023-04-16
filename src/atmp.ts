@@ -4,7 +4,6 @@ import {
   ErrorWithMessage,
   First,
   Fn,
-  Last,
   Result,
   UnpackAll,
   UnpackResult,
@@ -53,15 +52,23 @@ function collect<T extends Record<string, Attempt>>(fns: T) {
   >
 }
 
+type PipeReturn<Atmps extends unknown> = Atmps extends [
+  Attempt<(...a: infer FI) => infer FO>,
+  Attempt<(a: infer SI) => infer SO>,
+  ...infer rest,
+]
+  ? FO extends SI
+    ? PipeReturn<[Attempt<(...a: FI) => SO>, ...rest]>
+    : Attempt<(...a: FI) => void>
+  : Atmps extends [Attempt]
+  ? Atmps[0]
+  : void
+
 function pipe<T extends [Attempt, ...Attempt[]]>(...fns: T) {
-  return (async (...args) => {
+  return (async (...args: any) => {
     const [res, err] = await sequence(...fns)(...args)
     return err ? [null, err] : [res.at(-1), null]
-  }) as Attempt<
-    (
-      ...args: Parameters<Extract<First<T>, Attempt>>
-    ) => UnpackResult<ReturnType<Extract<Last<T>, Attempt>>>
-  >
+  }) as PipeReturn<T>
 }
 
 function sequence<T extends [Attempt, ...Attempt[]]>(...fns: T) {
