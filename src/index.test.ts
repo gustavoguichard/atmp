@@ -2,6 +2,7 @@ import { describe, it } from 'https://deno.land/std@0.156.0/testing/bdd.ts'
 import { assertEquals } from 'https://deno.land/std@0.160.0/testing/asserts.ts'
 import { atmp, collect, map, mapError, pipe, sequence } from './index.ts'
 import type { Attempt, Result, ErrorWithMessage } from './index.ts'
+import { Equal, Expect } from './types.test.ts'
 
 const voidFn = () => {}
 const toString = (a: unknown) => `${a}`
@@ -18,29 +19,47 @@ const alwaysThrow = () => {
 
 describe('atmp', () => {
   it('infers the types if has no arguments or return', async () => {
-    const fn: Attempt<typeof voidFn> = atmp(() => {})
-    const res: Result<void> = await fn()
+    const fn = atmp(() => {})
+    const res = await fn()
+
+    type _FN = Expect<Equal<typeof fn, Attempt<() => void>>>
+    type _R = Expect<Equal<typeof res, Result<void>>>
 
     assertEquals(res, [undefined, null])
   })
 
   it('infers the types if has arguments and a return', async () => {
-    const fn: Attempt<typeof add> = atmp(add)
-    const res: Result<number> = await fn(1, 2)
+    const fn = atmp(add)
+    const res = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => number>>
+    >
+    type _R = Expect<Equal<typeof res, Result<number>>>
 
     assertEquals(res, [3, null])
   })
 
   it('infers the types of async functions', async () => {
-    const fn: Attempt<typeof asyncAdd> = atmp(asyncAdd)
-    const res: Result<number> = await fn(1, 2)
+    const fn = atmp(asyncAdd)
+    const res = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => number>>
+    >
+    type _R = Expect<Equal<typeof res, Result<number>>>
 
     assertEquals(res, [3, null])
   })
 
   it('catch errors', async () => {
-    const fn: Attempt<typeof faultyAdd> = atmp(faultyAdd)
-    const [res, err]: Result<number> = await fn(1, 2)
+    const fn = atmp(faultyAdd)
+    const [res, err] = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => number>>
+    >
+    type _R = Expect<Equal<typeof res, Result<number>[0]>>
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'a is 1')
@@ -49,33 +68,40 @@ describe('atmp', () => {
 
 describe('pipe', () => {
   it('sends the results of the first function to the second and infers types', async () => {
-    const fn: Attempt<(a: number, b: number) => string> = pipe(
-      atmp(add),
-      atmp(toString),
-    )
-    const res: Result<string> = await fn(1, 2)
+    const fn = pipe(atmp(add), atmp(toString))
+    const res = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => string>>
+    >
+    type _R = Expect<Equal<typeof res, Result<string>>>
 
     assertEquals(res, ['3', null])
   })
 
   it('catches the errors from function A', async () => {
-    const fn: Attempt<(a: number, b: number) => string> = pipe(
-      atmp(faultyAdd),
-      atmp(toString),
-    )
-    const [res, err]: Result<string> = await fn(1, 2)
+    const fn = pipe(atmp(faultyAdd), atmp(toString))
+    const [res, err] = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => string>>
+    >
+    type _R = Expect<Equal<typeof res, Result<string>[0]>>
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'a is 1')
   })
 
   it('catches the errors from function B', async () => {
-    const fn: Attempt<(a: number, b: number) => never> = pipe(
-      atmp(add),
-      atmp(alwaysThrow),
-      atmp(toString),
-    )
-    const [res, err]: Result<never> = await fn(1, 2)
+    const fn = pipe(atmp(add), atmp(alwaysThrow), atmp(toString))
+    // TODO this should not type check
+    const [res, err] = await fn(1, 2)
+
+    // TODO this should be a type error
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => string>>
+    >
+    type _R = Expect<Equal<typeof res, Result<string>[0]>>
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'always throw')
@@ -85,21 +111,25 @@ describe('pipe', () => {
 
 describe('sequence', () => {
   it('sends the results of the first function to the second and saves every step of the result', async () => {
-    const fn: Attempt<(a: number, b: number) => [number, string]> = sequence(
-      atmp(add),
-      atmp(toString),
-    )
-    const res: Result<[number, string]> = await fn(1, 2)
+    const fn = sequence(atmp(add), atmp(toString))
+    const res = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => [number, string]>>
+    >
+    type _R = Expect<Equal<typeof res, Result<[number, string]>>>
 
     assertEquals(res, [[3, '3'], null])
   })
 
   it('catches the errors from function A', async () => {
-    const fn: Attempt<(a: number, b: number) => [number, string]> = sequence(
-      atmp(faultyAdd),
-      atmp(toString),
-    )
-    const [res, err]: Result<[number, string]> = await fn(1, 2)
+    const fn = sequence(atmp(faultyAdd), atmp(toString))
+    const [res, err] = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => [number, string]>>
+    >
+    type _R = Expect<Equal<typeof res, Result<[number, string]>[0]>>
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'a is 1')
@@ -115,6 +145,22 @@ describe('collect', () => {
     })
     const res = await fn(1, 2)
 
+    type _FN = Expect<
+      Equal<
+        typeof fn,
+        Attempt<
+          (...args: [] | [a: number, b: number] | [a: unknown]) => {
+            add: number
+            string: string
+            void: void
+          }
+        >
+      >
+    >
+    type _R = Expect<
+      Equal<typeof res, Result<{ add: number; string: string; void: void }>>
+    >
+
     assertEquals(res, [{ add: 3, string: '1', void: undefined }, null])
   })
 
@@ -125,6 +171,18 @@ describe('collect', () => {
     })
     const res = await fn(1, 2)
 
+    type _FN = Expect<
+      Equal<
+        typeof fn,
+        Attempt<
+          (...args: [a: number, b: number] | [a: string, b: string]) => {
+            add: number
+            string: string
+          }
+        >
+      >
+    >
+    type _R = Expect<Equal<typeof res, Result<{ add: number; string: string }>>>
     assertEquals(res, [{ add: 3, string: '12' }, null])
   })
 
@@ -135,6 +193,24 @@ describe('collect', () => {
     })
     const [res, err] = await fn(1, 2)
 
+    type _FN = Expect<
+      Equal<
+        typeof fn,
+        Attempt<
+          (
+            a: number,
+            b: number,
+          ) => {
+            error1: number
+            error2: number
+          }
+        >
+      >
+    >
+    type _R = Expect<
+      Equal<typeof res, Result<{ error1: number; error2: number }>[0]>
+    >
+
     assertEquals(res, null)
     assertEquals(err![0].message, 'a is 1')
     assertEquals(err![1].message, 'a is 1')
@@ -143,31 +219,40 @@ describe('collect', () => {
 
 describe('map', () => {
   it('maps over an attempt function successful result', async () => {
-    const fn: Attempt<(a: number, b: number) => boolean> = map(
-      atmp(add),
-      (a) => a + 1 === 4,
-    )
-    const res: Result<boolean> = await fn(1, 2)
+    const fn = map(atmp(add), (a) => a + 1 === 4)
+    const res = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => boolean>>
+    >
+    type _R = Expect<Equal<typeof res, Result<boolean>>>
 
     assertEquals(res, [true, null])
   })
 
   it('maps over a composition', async () => {
-    const fn: Attempt<(a: number, b: number) => boolean> = map(
+    const fn = map(
       pipe(atmp(add), atmp(toString)),
       (a) => typeof a === 'string',
     )
-    const res: Result<boolean> = await fn(1, 2)
+    const res = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => boolean>>
+    >
+    type _R = Expect<Equal<typeof res, Result<boolean>>>
 
     assertEquals(res, [true, null])
   })
 
   it('does not do anything when the function fails', async () => {
-    const fn: Attempt<(a: number, b: number) => boolean> = map(
-      atmp(faultyAdd),
-      (a) => a + 1 === 4,
-    )
-    const [res, err]: Result<boolean> = await fn(1, 2)
+    const fn = map(atmp(faultyAdd), (a) => a + 1 === 4)
+    const [res, err] = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => boolean>>
+    >
+    type _R = Expect<Equal<typeof res, Result<boolean>[0]>>
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'a is 1')
@@ -177,11 +262,13 @@ describe('map', () => {
 const cleanError = (err: ErrorWithMessage) => ({ message: err.message + '!!!' })
 describe('mapError', () => {
   it('maps over the error results of an attempt function', async () => {
-    const fn: Attempt<(a: number, b: number) => number> = mapError(
-      atmp(faultyAdd),
-      cleanError,
-    )
-    const [res, err]: Result<number> = await fn(1, 2)
+    const fn = mapError(atmp(faultyAdd), cleanError)
+    const [res, err] = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => number>>
+    >
+    type _R = Expect<Equal<typeof res, Result<number>[0]>>
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'a is 1!!!')
