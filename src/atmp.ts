@@ -1,13 +1,5 @@
 import { toErrorWithMessage } from './errors.ts'
-import {
-  Attempt,
-  ErrorWithMessage,
-  First,
-  Fn,
-  Result,
-  UnpackAll,
-  UnpackResult,
-} from './types.ts'
+import { Attempt, ErrorWithMessage, Fn, Result, UnpackResult } from './types.ts'
 
 function atmp<T extends Fn>(fn: T): Attempt<T> {
   return async (...args) => {
@@ -20,6 +12,7 @@ function atmp<T extends Fn>(fn: T): Attempt<T> {
   }
 }
 
+type CollectParams<T extends Record<string, Attempt>> = Parameters<T[keyof T]>
 function collect<T extends Record<string, Attempt>>(fns: T) {
   return (async (...args) => {
     const results = await Promise.all(
@@ -46,8 +39,8 @@ function collect<T extends Record<string, Attempt>>(fns: T) {
     )
     return errors.length ? [null, errors] : [successes, null]
   }) as Attempt<
-    (...args: Parameters<Extract<T[keyof T], Attempt>>) => {
-      [key in keyof T]: UnpackResult<ReturnType<Extract<T[key], Attempt>>>
+    (...args: CollectParams<T>) => {
+      [key in keyof T]: UnpackResult<ReturnType<T[key]>>
     }
   >
 }
@@ -59,20 +52,35 @@ type PipeReturn<Atmps extends unknown> = Atmps extends [
 ]
   ? FO extends SI
     ? PipeReturn<[Attempt<(...a: FI) => SO>, ...rest]>
-    : Attempt<(...a: FI) => void>
+    : Attempt<(...a: FI) => never>
   : Atmps extends [Attempt]
   ? Atmps[0]
   : void
 
 function pipe<T extends [Attempt, ...Attempt[]]>(...fns: T) {
-  return (async (...args: any) => {
-    const [res, err] = await sequence(...fns)(...args)
+  return (async (...args: any[]) => {
+    const [res, err] = await (sequence as Function)(...fns)(...args)
     return err ? [null, err] : [res.at(-1), null]
   }) as PipeReturn<T>
 }
 
+type SequenceReturn<
+  Atmps extends unknown,
+  Outputs extends unknown[] = [],
+> = Atmps extends [
+  Attempt<(...a: infer FI) => infer FO>,
+  Attempt<(a: infer SI) => infer SO>,
+  ...infer rest,
+]
+  ? FO extends SI
+    ? SequenceReturn<[Attempt<(...a: FI) => SO>, ...rest], [...Outputs, FO]>
+    : Attempt<(...a: FI) => never>
+  : Atmps extends [Attempt<(...a: infer A) => infer O>]
+  ? Attempt<(...a: A) => [...Outputs, O]>
+  : void
+
 function sequence<T extends [Attempt, ...Attempt[]]>(...fns: T) {
-  return (async (...args) => {
+  return (async (...args: any) => {
     const [head, ...tail] = fns
 
     const [res, err] = await head(...args)
@@ -85,9 +93,7 @@ function sequence<T extends [Attempt, ...Attempt[]]>(...fns: T) {
       result.push(res)
     }
     return [result, null]
-  }) as Attempt<
-    (...args: Parameters<Extract<First<T>, Attempt>>) => UnpackAll<T>
-  >
+  }) as SequenceReturn<T>
 }
 
 function map<T extends Attempt, R>(

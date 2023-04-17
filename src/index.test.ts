@@ -96,11 +96,13 @@ describe('pipe', () => {
     const fn = pipe(atmp(add), atmp(toString), atmp(add))
     const res = await fn(1, 2)
 
-    type _FN = Expect<Equal<typeof fn, Attempt<(a: number, b: number) => void>>>
-    type _R = Expect<Equal<typeof res, Result<void>>>
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => never>>
+    >
+    type _R = Expect<Equal<typeof res, Result<never>>>
 
     // This is definitely not what the dev expected
-    assertEquals(res, ['3undefined', null] as Result<any>)
+    assertEquals(res, ['3undefined', null] as Result<never>)
   })
 
   it('catches the errors from function B', async () => {
@@ -140,6 +142,19 @@ describe('sequence', () => {
 
     assertEquals(res, null)
     assertEquals(err![0].message, 'a is 1')
+  })
+
+  it('catches the type errors early', async () => {
+    const fn = sequence(atmp(add), atmp(toString), atmp(add))
+    const res = await fn(1, 2)
+
+    type _FN = Expect<
+      Equal<typeof fn, Attempt<(a: number, b: number) => never>>
+    >
+    type _R = Expect<Equal<typeof res, Result<never>>>
+
+    // This is definitely not what the dev expected
+    assertEquals(res, [[3, '3', '3undefined'], null] as Result<never>)
   })
 })
 
