@@ -1,3 +1,6 @@
+# Deprecated
+This library was deprecated as it became a base for what came to be a much better project: [composable-functions](https://github.com/seasonedcc/composable-functions) . Check it out!
+
 # atmp
 
 A lightweight TS library for error handling and function composition with a focus on simplicity and type safety. Inspired by [domain-functions](https://github.com/seasonedcc/domain-functions) and Go's [error handling pattern](https://go.dev/blog/error-handling-and-go).
